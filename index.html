@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Karate Academy System</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+
+<body>
+
+<h2>🥋 نظام الأكاديمية</h2>
+
+<h3>إضافة لاعب</h3>
+<input id="name" placeholder="اسم اللاعب">
+<input id="sessions" placeholder="عدد الحصص">
+<button onclick="addPlayer()">إضافة</button>
+
+<hr>
+
+<h3>📸 تسجيل حضور بالـ QR</h3>
+<div id="reader" style="width:300px;"></div>
+<p id="scanResult"></p>
+
+<hr>
+
+<h3>👤 اللاعبين</h3>
+<div id="list"></div>
+
+<script>
+
+let players = [];
+let idCounter = 1;
+
+// إضافة لاعب
+function addPlayer(){
+  let name = document.getElementById("name").value;
+  let sessions = document.getElementById("sessions").value;
+
+  if(!name || !sessions){
+    alert("اكتب البيانات");
+    return;
+  }
+
+  let player = {
+    id: idCounter,
+    name: name,
+    sessions: parseInt(sessions)
+  };
+
+  players.push(player);
+
+  renderPlayers();
+
+  idCounter++;
+
+  document.getElementById("name").value = "";
+  document.getElementById("sessions").value = "";
+}
+
+// عرض اللاعبين
+function renderPlayers(){
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  players.forEach(p => {
+
+    let div = document.createElement("div");
+
+    div.innerHTML = `
+      <b>${p.id} - ${p.name} | حصص: ${p.sessions}</b>
+      <div id="qr-${p.id}"></div>
+      <hr>
+    `;
+
+    list.appendChild(div);
+
+    new QRCode(document.getElementById("qr-" + p.id), {
+      text: p.id.toString(),
+      width: 100,
+      height: 100
+    });
+
+  });
+}
+
+// QR Scanner
+function onScanSuccess(decodedText) {
+
+  let player = players.find(p => p.id == decodedText);
+
+  if(player){
+
+    if(player.sessions > 0){
+      player.sessions--;
+      document.getElementById("scanResult").innerText =
+        "تم تسجيل حضور: " + player.name + " | باقي حصص: " + player.sessions;
+
+      renderPlayers();
+    } else {
+      document.getElementById("scanResult").innerText =
+        "الاشتراك خلص ❌";
+    }
+
+  } else {
+    document.getElementById("scanResult").innerText = "لا يوجد لاعب";
+  }
+}
+
+let html5QrCode = new Html5Qrcode("reader");
+
+Html5Qrcode.getCameras().then(cameras => {
+  if (cameras && cameras.length) {
+    html5QrCode.start(
+      cameras[0].id,
+      { fps: 10, qrbox: 250 },
+      onScanSuccess
+    );
+  }
+});
+
+</script>
+
+</body>
+</html>
