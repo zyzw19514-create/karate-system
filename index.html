@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Karate Academy System</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body { font-family: Arial; padding: 10px; }
+    input { display:block; margin:5px 0; padding:8px; width:200px; }
+    button { padding:10px; margin-top:5px; }
+    .player { margin:10px 0; padding:10px; border:1px solid #ccc; }
+  </style>
+</head>
+
+<body>
+
+<h2>🥋 نظام الأكاديمية</h2>
+
+<h3>إضافة لاعب</h3>
+<input id="name" placeholder="اسم اللاعب">
+<input id="sessions" placeholder="عدد الحصص">
+<button onclick="addPlayer()">إضافة لاعب</button>
+
+<hr>
+
+<h3>📸 تسجيل حضور بالـ QR</h3>
+<div id="reader" style="width:300px;"></div>
+<p id="scanResult"></p>
+
+<hr>
+
+<h3>👤 اللاعبين</h3>
+<div id="list"></div>
+
+<script>
+
+let players = [];
+let idCounter = 1;
+
+// إضافة لاعب
+function addPlayer(){
+  let name = document.getElementById("name").value;
+  let sessions = document.getElementById("sessions").value;
+
+  if(!name || !sessions){
+    alert("اكتب الاسم وعدد الحصص");
+    return;
+  }
+
+  let player = {
+    id: idCounter,
+    name: name,
+    sessions: parseInt(sessions)
+  };
+
+  players.push(player);
+  renderPlayers();
+
+  idCounter++;
+
+  document.getElementById("name").value = "";
+  document.getElementById("sessions").value = "";
+}
+
+// عرض اللاعبين + QR
+function renderPlayers(){
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  players.forEach(p => {
+
+    let div = document.createElement("div");
+    div.className = "player";
+
+    div.innerHTML = `
+      <b>${p.id} - ${p.name}</b><br>
+      حصص متبقية: ${p.sessions}
+      <div id="qr-${p.id}"></div>
+    `;
+
+    list.appendChild(div);
+
+    new QRCode(document.getElementById("qr-" + p.id), {
+      text: p.id.toString(),
+      width: 100,
+      height: 100
+    });
+
+  });
+}
+
+// عند مسح QR
+function onScanSuccess(decodedText) {
+
+  let player = players.find(p => p.id == decodedText);
+
+  if(player){
+
+    if(player.sessions > 0){
+      player.sessions--;
+
+      document.getElementById("scanResult").innerText =
+        "✔ تم تسجيل: " + player.name +
+        " | باقي: " + player.sessions;
+
+      renderPlayers();
+    } else {
+      document.getElementById("scanResult").innerText =
+        "❌ الاشتراك خلص";
+    }
+
+  } else {
+    document.getElementById("scanResult").innerText =
+      "❌ لاعب غير موجود";
+  }
+}
+
+// تشغيل الكاميرا الخلفية
+let html5QrCode = new Html5Qrcode("reader");
+
+Html5Qrcode.getCameras().then(cameras => {
+  if (cameras && cameras.length) {
+
+    let backCamera = cameras.find(cam =>
+      cam.label.toLowerCase().includes("back") ||
+      cam.label.toLowerCase().includes("rear")
+    );
+
+    let cameraId = backCamera ? backCamera.id : cameras[0].id;
+
+    html5QrCode.start(
+      cameraId,
+      { fps: 10, qrbox: 250 },
+      onScanSuccess
+    );
+  }
+});
+
+</script>
+
+</body>
+</html>
